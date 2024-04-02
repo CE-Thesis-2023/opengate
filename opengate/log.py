@@ -24,7 +24,8 @@ def listener_configurer() -> None:
 
     console_handler = logging.StreamHandler()
     formatter = logging.Formatter(
-        "[%(asctime)s] %(name)-30s %(levelname)-8s: %(message)s", "%Y-%m-%d %H:%M:%S"
+        fmt="%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]\t %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     console_handler.setFormatter(formatter)
     root.addHandler(console_handler)
@@ -65,7 +66,7 @@ def log_process(log_queue: Queue) -> None:
         if record.msg.startswith("You are using a scalar distance function"):
             continue
         logger = logging.getLogger(record.name)
-        logger.addHandler(record)
+        logger.handle(record)
 
 
 # based on https://codereview.stackexchange.com/a/17959

@@ -49,12 +49,12 @@ DEFAULT_TIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 # German Style:
 # DEFAULT_TIME_FORMAT = "%d.%m.%Y %H:%M:%S"
 
-FRIGATE_ENV_VARS = {k: v for k, v in os.environ.items() if k.startswith("FRIGATE_")}
+OPENGATE_ENV_VARS = {k: v for k, v in os.environ.items() if k.startswith("OPENGATE_")}
 # read docker secret files as env vars too
 if os.path.isdir("/run/secrets"):
     for secret_file in os.listdir("/run/secrets"):
-        if secret_file.startswith("FRIGATE_"):
-            FRIGATE_ENV_VARS[secret_file] = Path(
+        if secret_file.startswith("OPENGATE_"):
+            OPENGATE_ENV_VARS[secret_file] = Path(
                 os.path.join("/run/secrets", secret_file)
             ).read_text()
 
@@ -1117,8 +1117,8 @@ class OpenGateConfig(OpenGateBaseModel):
 
         # MQTT user/password substitutions
         if config.mqtt.user or config.mqtt.password:
-            config.mqtt.user = config.mqtt.user.format(**FRIGATE_ENV_VARS)
-            config.mqtt.password = config.mqtt.password.format(**FRIGATE_ENV_VARS)
+            config.mqtt.user = config.mqtt.user.format(**OPENGATE_ENV_VARS)
+            config.mqtt.password = config.mqtt.password.format(**OPENGATE_ENV_VARS)
 
         # set default min_score for object attributes
         for attribute in ALL_ATTRIBUTE_LABELS:
@@ -1197,15 +1197,15 @@ class OpenGateConfig(OpenGateBaseModel):
 
             # FFMPEG input substitution
             for input in camera_config.ffmpeg.inputs:
-                input.path = input.path.format(**FRIGATE_ENV_VARS)
+                input.path = input.path.format(**OPENGATE_ENV_VARS)
 
             # ONVIF substitution
             if camera_config.onvif.user or camera_config.onvif.password:
                 camera_config.onvif.user = camera_config.onvif.user.format(
-                    **FRIGATE_ENV_VARS
+                    **OPENGATE_ENV_VARS
                 )
                 camera_config.onvif.password = camera_config.onvif.password.format(
-                    **FRIGATE_ENV_VARS
+                    **OPENGATE_ENV_VARS
                 )
             # set config pre-value
             camera_config.record.enabled_in_config = camera_config.record.enabled

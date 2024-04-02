@@ -51,6 +51,7 @@ from opengate.storage import StorageMaintainer
 from opengate.timeline import TimelineProcessor
 from opengate.types import CameraMetricsTypes, FeatureMetricsTypes, PTZMetricsTypes
 from opengate.util.object import get_camera_regions_grid
+from opengate.version import VERSION
 from opengate.video import capture_camera, track_camera
 from opengate.watchdog import OpenGateWatchdog
 
@@ -637,7 +638,7 @@ class OpenGateApp:
         args = parser.parse_args()
 
         self.init_logger()
-        logger.info("Starting OpenGate (v1.0.0))")
+        logger.info(f"Starting OpenGate ({VERSION})")
         try:
             self.ensure_dirs()
             try:

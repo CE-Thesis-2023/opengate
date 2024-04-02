@@ -21,7 +21,7 @@ from opengate.const import (
     AUDIO_MAX_BIT_RANGE,
     AUDIO_MIN_CONFIDENCE,
     AUDIO_SAMPLE_RATE,
-    FRIGATE_LOCALHOST,
+    OPENGATE_LOCALHOST,
 )
 from opengate.ffmpeg_presets import parse_preset_input
 from opengate.log import LogPipe
@@ -265,7 +265,7 @@ class AudioEventMaintainer(threading.Thread):
             )
 
             resp = requests.post(
-                f"{FRIGATE_LOCALHOST}/api/events/{self.config.name}/{label}/create",
+                f"{OPENGATE_LOCALHOST}/api/events/{self.config.name}/{label}/create",
                 json={"duration": None, "score": score, "source_type": "audio"},
             )
 
@@ -293,7 +293,7 @@ class AudioEventMaintainer(threading.Thread):
                 )
 
                 resp = requests.put(
-                    f"{FRIGATE_LOCALHOST}/api/events/{detection['id']}/end",
+                    f"{OPENGATE_LOCALHOST}/api/events/{detection['id']}/end",
                     json={
                         "end_time": detection["last_detection"]
                         + self.config.record.events.post_capture
