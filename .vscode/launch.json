@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Launch OpenGate",
+      "type": "python",
+      "request": "launch",
+      "module": "opengate",
+      "justMyCode": true
+    }
+  ]
+}
