@@ -32,7 +32,6 @@ from opengate.ffmpeg_presets import (
     parse_preset_output_record,
     parse_preset_output_rtmp,
 )
-from opengate.plus import PlusApi
 from opengate.util.builtin import (
     deep_merge,
     escape_special_characters,
@@ -1111,7 +1110,7 @@ class OpenGateConfig(OpenGateBaseModel):
         title="Global timestamp style configuration.",
     )
 
-    def runtime_config(self, plus_api: PlusApi = None) -> OpenGateConfig:
+    def runtime_config(self) -> OpenGateConfig:
         """Merge camera config with globals."""
         config = self.copy(deep=True)
 
@@ -1284,7 +1283,6 @@ class OpenGateConfig(OpenGateBaseModel):
             enabled_labels.update(camera.objects.track)
 
         config.model.create_colormap(sorted(enabled_labels))
-        config.model.check_and_load_plus_model(plus_api)
 
         for key, detector in config.detectors.items():
             detector_config: DetectorConfig = parse_obj_as(DetectorConfig, detector)
@@ -1317,9 +1315,6 @@ class OpenGateConfig(OpenGateBaseModel):
                     merged_model["path"] = "/edgetpu_model.tflite"
 
             detector_config.model = ModelConfig.parse_obj(merged_model)
-            detector_config.model.check_and_load_plus_model(
-                plus_api, detector_config.type
-            )
             detector_config.model.compute_model_hash()
             config.detectors[key] = detector_config
 
