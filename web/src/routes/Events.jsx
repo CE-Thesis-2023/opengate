@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { Fragment } from 'preact';
 import { route } from 'preact-router';
 import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import useSWR from 'swr';
@@ -10,7 +9,6 @@ import Button from '../components/Button';
 import Calendar from '../components/Calendar';
 import Dialog from '../components/Dialog';
 import Heading from '../components/Heading';
-import Link from '../components/Link';
 import Menu, { MenuItem } from '../components/Menu';
 import MultiSelect from '../components/MultiSelect';
 import { Tabs, TextTab } from '../components/Tabs';
@@ -70,11 +68,8 @@ export default function Events({ path, ...props }) {
     showDatePicker: false,
     showCalendar: false,
   });
-  const [uploading, setUploading] = useState([]);
-  const [uploadErrors, setUploadErrors] = useState([]);
   const [viewEvent, setViewEvent] = useState(props.event);
   const [eventOverlay, setEventOverlay] = useState();
-  const [eventDetailType, setEventDetailType] = useState('clip');
   const [downloadEvent, setDownloadEvent] = useState({
     id: null,
     label: null,
@@ -272,13 +267,6 @@ export default function Events({ path, ...props }) {
     },
     [path, searchParams, setSearchParams]
   );
-
-  const onClickFilterSubmitted = useCallback(() => {
-    if (++searchParams.is_submitted > 1) {
-      searchParams.is_submitted = -1;
-    }
-    onFilter('is_submitted', searchParams.is_submitted);
-  }, [searchParams, onFilter]);
 
   const isDone = (eventPages?.[eventPages.length - 1]?.length ?? 0) < API_LIMIT;
 
@@ -494,13 +482,9 @@ export default function Events({ path, ...props }) {
                     key={event.id}
                     config={config}
                     event={event}
-                    eventDetailType={eventDetailType}
                     eventOverlay={eventOverlay}
                     viewEvent={viewEvent}
                     setViewEvent={setViewEvent}
-                    uploading={uploading}
-                    uploadErrors={uploadErrors}
-                    handleEventDetailTabChange={handleEventDetailTabChange}
                     onEventFrameSelected={onEventFrameSelected}
                     onDelete={onDelete}
                     onDispose={() => {
@@ -532,14 +516,11 @@ export default function Events({ path, ...props }) {
                   key={event.id}
                   config={config}
                   event={event}
-                  eventDetailType={eventDetailType}
                   eventOverlay={eventOverlay}
                   viewEvent={viewEvent}
                   setViewEvent={setViewEvent}
                   lastEvent={lastEvent}
                   lastEventRef={lastEventRef}
-                  uploading={uploading}
-                  uploadErrors={uploadErrors}
                   onEventFrameSelected={onEventFrameSelected}
                   onDelete={onDelete}
                   onDispose={() => {
@@ -576,8 +557,6 @@ function Event({
   setViewEvent,
   lastEvent,
   lastEventRef,
-  uploading,
-  uploadErrors,
   handleEventDetailTabChange,
   onEventFrameSelected,
   onDelete,
@@ -586,19 +565,6 @@ function Event({
   onReady,
   onSave,
 }) {
-  const getUploadButtonState = (eventId) => {
-    const isUploading = uploading.includes(eventId);
-    const hasUploadError = uploadErrors.find((event) => event.id === eventId);
-    if (hasUploadError) {
-      if (hasUploadError.isUnsupported) {
-        return { isDisabled: true, label: 'Unsupported label' };
-      }
-      return { isDisabled: isUploading, label: 'Upload error' };
-    }
-
-    const label = isUploading ? 'Uploading...' : 'Send to OpenGate+';
-    return { isDisabled: isUploading, label };
-  };
   const apiHost = useApiHost();
 
   return (
