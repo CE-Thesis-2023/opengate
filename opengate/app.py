@@ -12,6 +12,7 @@ from multiprocessing.synchronize import Event as MpEvent
 from types import FrameType
 from typing import Optional
 
+import psutil
 from peewee_migrate import Router
 from playhouse.sqlite_ext import SqliteExtDatabase
 from playhouse.sqliteq import SqliteQueueDatabase
@@ -266,6 +267,12 @@ class OpenGateApp:
 
         # Queue for inter process communication
         self.inter_process_queue: Queue = mp.Queue()
+
+    def init_go2rtc(self) -> None:
+        for proc in psutil.process_iter(["pid", "name"]):
+            if proc.info["name"] == "go2rtc":
+                logger.info(f"go2rtc process pid: {proc.info['pid']}")
+                self.processes["go2rtc"] = proc.info["pid"]
 
     def init_database(self) -> None:
         def vacuum_db(db: SqliteExtDatabase) -> None:
@@ -665,6 +672,7 @@ class OpenGateApp:
             self.init_database()
             self.init_onvif()
             self.init_recording_manager()
+            self.init_go2rtc()
             self.bind_database()
             self.init_inter_process_communicator()
             self.init_dispatcher()
