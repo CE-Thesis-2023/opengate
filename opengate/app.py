@@ -29,6 +29,7 @@ from opengate.const import (
     DEFAULT_DB_PATH,
     EXPORT_DIR,
     MODEL_CACHE_DIR,
+    OPENGATE_EMBLEM,
     RECORD_DIR,
 )
 from opengate.events.audio import listen_to_audio
@@ -636,6 +637,8 @@ class OpenGateApp:
         )
         parser.add_argument("--validate-config", action="store_true")
         args = parser.parse_args()
+
+        print(OPENGATE_EMBLEM)
 
         self.init_logger()
         logger.info(f"Starting OpenGate ({VERSION})")

@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
+import preact from '@preact/preset-vite';
 import path from 'path';
 import { defineConfig } from 'vite';
-import preact from '@preact/preset-vite';
 import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 
 // https://vitejs.dev/config/
