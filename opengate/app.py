@@ -404,6 +404,7 @@ class OpenGateApp:
         comms: list[Communicator] = []
 
         if self.config.mqtt.enabled:
+            logging.debug("MQTT enabled")
             comms.append(MqttClient(self.config))
 
         comms.append(WebSocketClient(self.config))
