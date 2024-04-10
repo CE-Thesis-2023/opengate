@@ -9,6 +9,7 @@ from onvif import ONVIFCamera, ONVIFError
 from zeep.exceptions import Fault, TransportError
 
 from opengate.config import OpenGateConfig, ZoomingModeEnum
+from opengate.ptz.sidecar import SidecarCameraController
 from opengate.types import PTZMetricsTypes
 from opengate.util.builtin import find_by_key
 
@@ -31,11 +32,15 @@ class OnvifCommandEnum(str, Enum):
 
 class OnvifController:
     def __init__(
-        self, config: OpenGateConfig, ptz_metrics: dict[str, PTZMetricsTypes]
+        self,
+        config: OpenGateConfig,
+        ptz_metrics: dict[str, PTZMetricsTypes],
+        sidecar: SidecarCameraController = SidecarCameraController(),
     ) -> None:
         self.cams: dict[str, ONVIFCamera] = {}
         self.config = config
         self.ptz_metrics = ptz_metrics
+        self.sidecar = sidecar
 
         for cam_name, cam in config.cameras.items():
             if not cam.enabled:
@@ -61,6 +66,12 @@ class OnvifController:
                     }
                 except ONVIFError as e:
                     logger.error(f"Onvif connection to {cam.name} failed: {e}")
+
+    def _is_sidecar(self, camera_name: str) -> bool:
+        return (
+            self.config.cameras[camera_name].onvif.isapi_fallback
+            or self.config.cameras[camera_name].onvif.isapi_sidecar != None
+        )
 
     def _init_onvif(self, camera_name: str) -> bool:
         onvif: ONVIFCamera = self.cams[camera_name]["onvif"]
@@ -540,6 +551,10 @@ class OnvifController:
         }
 
     def get_service_capabilities(self, camera_name: str) -> None:
+        # sidecar already implements this functionality
+        if self._is_sidecar(camera_name):
+            return True
+
         if camera_name not in self.cams.keys():
             logger.error(f"Onvif is not setup for {camera_name}")
             return {}
@@ -563,6 +578,14 @@ class OnvifController:
         return find_by_key(vars(service_capabilities), "MoveStatus")
 
     def get_camera_status(self, camera_name: str) -> None:
+        move_status = ""
+        if self._is_sidecar(camera_name=camera_name):
+            resp = self.sidecar.get_status(camera_name)
+            move_status = "idle"
+            if resp["status"] is True:
+                move_status = "moving"
+            return
+
         if camera_name not in self.cams.keys():
             logger.error(f"Onvif is not setup for {camera_name}")
             return {}
@@ -584,7 +607,7 @@ class OnvifController:
 
         # if it's not an attribute, see if MoveStatus even exists in the status result
         if pan_tilt_status is None:
-            pan_tilt_status = getattr(status, "MoveStatus", None)
+            pan_tilt_status = getattr(status, "MoveStatus", move_status)
 
             # we're unsupported
             if pan_tilt_status is None or pan_tilt_status.lower() not in [
