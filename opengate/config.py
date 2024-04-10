@@ -48,7 +48,8 @@ DEFAULT_TIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 # German Style:
 # DEFAULT_TIME_FORMAT = "%d.%m.%Y %H:%M:%S"
 
-OPENGATE_ENV_VARS = {k: v for k, v in os.environ.items() if k.startswith("OPENGATE_")}
+OPENGATE_ENV_VARS = {k: v for k,
+                     v in os.environ.items() if k.startswith("OPENGATE_")}
 # read docker secret files as env vars too
 if os.path.isdir("/run/secrets"):
     for secret_file in os.listdir("/run/secrets"):
@@ -110,7 +111,8 @@ class UIConfig(OpenGateBaseModel):
 
 class StatsConfig(OpenGateBaseModel):
     amd_gpu_stats: bool = Field(default=True, title="Enable AMD GPU stats.")
-    intel_gpu_stats: bool = Field(default=True, title="Enable Intel GPU stats.")
+    intel_gpu_stats: bool = Field(
+        default=True, title="Enable Intel GPU stats.")
     network_bandwidth: bool = Field(
         default=False, title="Enable network bandwidth for ffmpeg processes."
     )
@@ -124,7 +126,8 @@ class TelemetryConfig(OpenGateBaseModel):
     stats: StatsConfig = Field(
         default_factory=StatsConfig, title="System Stats Configuration"
     )
-    version_check: bool = Field(default=True, title="Enable latest version check.")
+    version_check: bool = Field(
+        default=True, title="Enable latest version check.")
 
 
 class MqttConfig(OpenGateBaseModel):
@@ -155,7 +158,8 @@ class ZoomingModeEnum(str, Enum):
 
 
 class PtzAutotrackConfig(OpenGateBaseModel):
-    enabled: bool = Field(default=False, title="Enable PTZ object autotracking.")
+    enabled: bool = Field(
+        default=False, title="Enable PTZ object autotracking.")
     calibrate_on_startup: bool = Field(
         default=False, title="Perform a camera calibration when OpenGate starts."
     )
@@ -168,7 +172,8 @@ class PtzAutotrackConfig(OpenGateBaseModel):
         ge=0.1,
         le=0.75,
     )
-    track: List[str] = Field(default=DEFAULT_TRACKED_OBJECTS, title="Objects to track.")
+    track: List[str] = Field(
+        default=DEFAULT_TRACKED_OBJECTS, title="Objects to track.")
     required_zones: List[str] = Field(
         default_factory=list,
         title="List of required zones to be entered in order to begin autotracking.",
@@ -206,6 +211,11 @@ class PtzAutotrackConfig(OpenGateBaseModel):
         return weights
 
 
+class ISAPISidecarConfig(OpenGateBaseModel):
+    host: str = Field(default="localhost", title="ISAPI Sidecar Host")
+    port: int = Field(default=5600, title="ISAPI Sidecar Port")
+
+
 class OnvifConfig(OpenGateBaseModel):
     host: str = Field(default="", title="Onvif Host")
     port: int = Field(default=8000, title="Onvif Port")
@@ -214,6 +224,12 @@ class OnvifConfig(OpenGateBaseModel):
     autotracking: PtzAutotrackConfig = Field(
         default_factory=PtzAutotrackConfig,
         title="PTZ auto tracking config.",
+    )
+    isapi_fallback: Optional[bool] = Field(
+        title="Use ISAPI PTZ commands as a fallback for camera control"
+    )
+    isapi_sidecar: ISAPISidecarConfig = Field(
+        default_factory=ISAPISidecarConfig, title="ISAPI Sidecar Configuration"
     )
 
 
@@ -225,7 +241,8 @@ class RetainModeEnum(str, Enum):
 
 class RetainConfig(OpenGateBaseModel):
     default: float = Field(default=10, title="Default retention period.")
-    mode: RetainModeEnum = Field(default=RetainModeEnum.motion, title="Retain mode.")
+    mode: RetainModeEnum = Field(
+        default=RetainModeEnum.motion, title="Retain mode.")
     objects: Dict[str, float] = Field(
         default_factory=dict, title="Object retention period."
     )
@@ -235,7 +252,8 @@ class EventsConfig(OpenGateBaseModel):
     pre_capture: int = Field(
         default=5, title="Seconds to retain before event starts.", le=MAX_PRE_CAPTURE
     )
-    post_capture: int = Field(default=5, title="Seconds to retain after event ends.")
+    post_capture: int = Field(
+        default=5, title="Seconds to retain after event ends.")
     required_zones: List[str] = Field(
         default_factory=list,
         title="List of required zones to be entered in order to save the event.",
@@ -250,7 +268,8 @@ class EventsConfig(OpenGateBaseModel):
 
 class RecordRetainConfig(OpenGateBaseModel):
     days: float = Field(default=0, title="Default retention period.")
-    mode: RetainModeEnum = Field(default=RetainModeEnum.all, title="Retain mode.")
+    mode: RetainModeEnum = Field(
+        default=RetainModeEnum.all, title="Retain mode.")
 
 
 class RecordExportConfig(OpenGateBaseModel):
@@ -360,8 +379,10 @@ class StationaryConfig(OpenGateBaseModel):
 
 
 class DetectConfig(OpenGateBaseModel):
-    height: Optional[int] = Field(title="Height of the stream for the detect role.")
-    width: Optional[int] = Field(title="Width of the stream for the detect role.")
+    height: Optional[int] = Field(
+        title="Height of the stream for the detect role.")
+    width: Optional[int] = Field(
+        title="Width of the stream for the detect role.")
     fps: int = Field(
         default=5, title="Number of frames per second to process through detection."
     )
@@ -426,7 +447,8 @@ class RuntimeFilterConfig(FilterConfig):
         config["raw_mask"] = mask
 
         if mask is not None:
-            config["mask"] = create_mask(config.get("frame_shape", (1, 1)), mask)
+            config["mask"] = create_mask(
+                config.get("frame_shape", (1, 1)), mask)
 
         super().__init__(**config)
 
@@ -478,20 +500,24 @@ class ZoneConfig(BaseModel):
 
         if isinstance(coordinates, list):
             self._contour = np.array(
-                [[int(p.split(",")[0]), int(p.split(",")[1])] for p in coordinates]
+                [[int(p.split(",")[0]), int(p.split(",")[1])]
+                 for p in coordinates]
             )
         elif isinstance(coordinates, str):
             points = coordinates.split(",")
             self._contour = np.array(
-                [[int(points[i]), int(points[i + 1])] for i in range(0, len(points), 2)]
+                [[int(points[i]), int(points[i + 1])]
+                 for i in range(0, len(points), 2)]
             )
         else:
             self._contour = np.array([])
 
 
 class ObjectConfig(OpenGateBaseModel):
-    track: List[str] = Field(default=DEFAULT_TRACKED_OBJECTS, title="Objects to track.")
-    filters: Dict[str, FilterConfig] = Field(default={}, title="Object filters.")
+    track: List[str] = Field(
+        default=DEFAULT_TRACKED_OBJECTS, title="Objects to track.")
+    filters: Dict[str, FilterConfig] = Field(
+        default={}, title="Object filters.")
     mask: Union[str, List[str]] = Field(default="", title="Object mask.")
 
 
@@ -506,11 +532,13 @@ class AudioConfig(OpenGateBaseModel):
     listen: List[str] = Field(
         default=DEFAULT_LISTEN_AUDIO, title="Audio to listen for."
     )
-    filters: Optional[Dict[str, AudioFilterConfig]] = Field(title="Audio filters.")
+    filters: Optional[Dict[str, AudioFilterConfig]
+                      ] = Field(title="Audio filters.")
     enabled_in_config: Optional[bool] = Field(
         title="Keep track of original state of audio detection."
     )
-    num_threads: int = Field(default=2, title="Number of detection threads", ge=1)
+    num_threads: int = Field(
+        default=2, title="Number of detection threads", ge=1)
 
 
 class BirdseyeModeEnum(str, Enum):
@@ -558,8 +586,10 @@ class BirdseyeConfig(OpenGateBaseModel):
 
 # uses BaseModel because some global attributes are not available at the camera level
 class BirdseyeCameraConfig(BaseModel):
-    enabled: bool = Field(default=True, title="Enable birdseye view for camera.")
-    order: int = Field(default=0, title="Position of the camera in the birdseye view.")
+    enabled: bool = Field(
+        default=True, title="Enable birdseye view for camera.")
+    order: int = Field(
+        default=0, title="Position of the camera in the birdseye view.")
     mode: BirdseyeModeEnum = Field(
         default=BirdseyeModeEnum.objects, title="Tracking mode for camera."
     )
@@ -567,7 +597,8 @@ class BirdseyeCameraConfig(BaseModel):
 
 # Note: Setting threads to less than 2 caused several issues with recording segments
 # https://github.com/blakeblackshear/opengate/issues/5659
-FFMPEG_GLOBAL_ARGS_DEFAULT = ["-hide_banner", "-loglevel", "warning", "-threads", "2"]
+FFMPEG_GLOBAL_ARGS_DEFAULT = ["-hide_banner",
+                              "-loglevel", "warning", "-threads", "2"]
 FFMPEG_INPUT_ARGS_DEFAULT = "preset-rtsp-generic"
 DETECT_FFMPEG_OUTPUT_ARGS_DEFAULT = [
     "-threads",
@@ -665,7 +696,8 @@ class SnapshotsConfig(OpenGateBaseModel):
     bounding_box: bool = Field(
         default=True, title="Add a bounding box overlay on the snapshot."
     )
-    crop: bool = Field(default=False, title="Crop the snapshot to the detected object.")
+    crop: bool = Field(
+        default=False, title="Crop the snapshot to the detected object.")
     required_zones: List[str] = Field(
         default_factory=list,
         title="List of required zones to be entered in order to save a snapshot.",
@@ -705,7 +737,8 @@ class TimestampStyleConfig(OpenGateBaseModel):
         default=TimestampPositionEnum.tl, title="Timestamp position."
     )
     format: str = Field(default=DEFAULT_TIME_FORMAT, title="Timestamp format.")
-    color: ColorConfig = Field(default_factory=ColorConfig, title="Timestamp color.")
+    color: ColorConfig = Field(
+        default_factory=ColorConfig, title="Timestamp color.")
     thickness: int = Field(default=2, title="Timestamp thickness.")
     effect: Optional[TimestampEffectEnum] = Field(title="Timestamp effect.")
 
@@ -713,8 +746,10 @@ class TimestampStyleConfig(OpenGateBaseModel):
 class CameraMqttConfig(OpenGateBaseModel):
     enabled: bool = Field(default=True, title="Send image over MQTT.")
     timestamp: bool = Field(default=True, title="Add timestamp to MQTT image.")
-    bounding_box: bool = Field(default=True, title="Add bounding box to MQTT image.")
-    crop: bool = Field(default=True, title="Crop MQTT image to detected object.")
+    bounding_box: bool = Field(
+        default=True, title="Add bounding box to MQTT image.")
+    crop: bool = Field(
+        default=True, title="Crop MQTT image to detected object.")
     height: int = Field(default=270, title="MQTT image height.")
     required_zones: List[str] = Field(
         default_factory=list,
@@ -733,9 +768,11 @@ class RtmpConfig(OpenGateBaseModel):
 
 
 class CameraLiveConfig(OpenGateBaseModel):
-    stream_name: str = Field(default="", title="Name of restream to use as live view.")
+    stream_name: str = Field(
+        default="", title="Name of restream to use as live view.")
     height: int = Field(default=720, title="Live camera view height")
-    quality: int = Field(default=8, ge=1, le=31, title="Live camera view quality")
+    quality: int = Field(default=8, ge=1, le=31,
+                         title="Live camera view quality")
 
 
 class RestreamConfig(BaseModel):
@@ -753,7 +790,8 @@ class CameraUiConfig(OpenGateBaseModel):
 class CameraConfig(OpenGateBaseModel):
     name: Optional[str] = Field(title="Camera name.", regex=REGEX_CAMERA_NAME)
     enabled: bool = Field(default=True, title="Enable camera.")
-    ffmpeg: CameraFfmpegConfig = Field(title="FFmpeg configuration for the camera.")
+    ffmpeg: CameraFfmpegConfig = Field(
+        title="FFmpeg configuration for the camera.")
     best_image_timeout: int = Field(
         default=60,
         title="How long to wait for the image with the highest confidence score.",
@@ -785,7 +823,8 @@ class CameraConfig(OpenGateBaseModel):
     audio: AudioConfig = Field(
         default_factory=AudioConfig, title="Audio events configuration."
     )
-    motion: Optional[MotionConfig] = Field(title="Motion detection configuration.")
+    motion: Optional[MotionConfig] = Field(
+        title="Motion detection configuration.")
     detect: DetectConfig = Field(
         default_factory=DetectConfig, title="Object detection configuration."
     )
@@ -808,14 +847,16 @@ class CameraConfig(OpenGateBaseModel):
         if "zones" in config:
             colors = plt.cm.get_cmap("tab10", len(config["zones"]))
             config["zones"] = {
-                name: {**z, "color": tuple(round(255 * c) for c in colors(idx)[:3])}
+                name: {**z, "color": tuple(round(255 * c)
+                                           for c in colors(idx)[:3])}
                 for idx, (name, z) in enumerate(config["zones"].items())
             }
 
         # add roles to the input if there is only one
         if len(config["ffmpeg"]["inputs"]) == 1:
             has_rtmp = "rtmp" in config["ffmpeg"]["inputs"][0].get("roles", [])
-            has_audio = "audio" in config["ffmpeg"]["inputs"][0].get("roles", [])
+            has_audio = "audio" in config["ffmpeg"]["inputs"][0].get(
+                "roles", [])
 
             config["ffmpeg"]["inputs"][0]["roles"] = [
                 "record",
@@ -851,7 +892,8 @@ class CameraConfig(OpenGateBaseModel):
             if ffmpeg_cmd is None:
                 continue
 
-            ffmpeg_cmds.append({"roles": ffmpeg_input.roles, "cmd": ffmpeg_cmd})
+            ffmpeg_cmds.append(
+                {"roles": ffmpeg_input.roles, "cmd": ffmpeg_cmd})
         self._ffmpeg_cmds = ffmpeg_cmds
 
     def _get_ffmpeg_cmd(self, ffmpeg_input: CameraInput):
@@ -866,7 +908,8 @@ class CameraConfig(OpenGateBaseModel):
                 self.detect.height,
             )
 
-            ffmpeg_output_args = scale_detect_args + ffmpeg_output_args + ["pipe:"]
+            ffmpeg_output_args = scale_detect_args + \
+                ffmpeg_output_args + ["pipe:"]
         if "rtmp" in ffmpeg_input.roles and self.rtmp.enabled:
             rtmp_args = get_ffmpeg_arg_list(
                 parse_preset_output_rtmp(self.ffmpeg.output_args.rtmp)
@@ -874,7 +917,8 @@ class CameraConfig(OpenGateBaseModel):
             )
 
             ffmpeg_output_args = (
-                rtmp_args + [f"rtmp://127.0.0.1/live/{self.name}"] + ffmpeg_output_args
+                rtmp_args +
+                [f"rtmp://127.0.0.1/live/{self.name}"] + ffmpeg_output_args
             )
         if "record" in ffmpeg_input.roles and self.record.enabled:
             record_args = get_ffmpeg_arg_list(
@@ -1117,7 +1161,8 @@ class OpenGateConfig(OpenGateBaseModel):
         # MQTT user/password substitutions
         if config.mqtt.user or config.mqtt.password:
             config.mqtt.user = config.mqtt.user.format(**OPENGATE_ENV_VARS)
-            config.mqtt.password = config.mqtt.password.format(**OPENGATE_ENV_VARS)
+            config.mqtt.password = config.mqtt.password.format(
+                **OPENGATE_ENV_VARS)
 
         # set default min_score for object attributes
         for attribute in ALL_ATTRIBUTE_LABELS:
@@ -1145,7 +1190,8 @@ class OpenGateConfig(OpenGateBaseModel):
         )
 
         for name, camera in config.cameras.items():
-            merged_config = deep_merge(camera.dict(exclude_unset=True), global_config)
+            merged_config = deep_merge(camera.dict(
+                exclude_unset=True), global_config)
             camera_config: CameraConfig = CameraConfig.parse_obj(
                 {"name": name, **merged_config}
             )
@@ -1158,7 +1204,8 @@ class OpenGateConfig(OpenGateBaseModel):
                     if "detect" in input.roles:
                         stream_info = {"width": 0, "height": 0}
                         try:
-                            stream_info = asyncio.run(get_video_properties(input.path))
+                            stream_info = asyncio.run(
+                                get_video_properties(input.path))
                         except Exception:
                             logger.warn(
                                 f"Error detecting stream resolution automatically for {input.path} Applying default values."
@@ -1285,7 +1332,8 @@ class OpenGateConfig(OpenGateBaseModel):
         config.model.create_colormap(sorted(enabled_labels))
 
         for key, detector in config.detectors.items():
-            detector_config: DetectorConfig = parse_obj_as(DetectorConfig, detector)
+            detector_config: DetectorConfig = parse_obj_as(
+                DetectorConfig, detector)
             if detector_config.model is None:
                 detector_config.model = config.model
             else:
