@@ -35,12 +35,16 @@ class OnvifController:
         self,
         config: OpenGateConfig,
         ptz_metrics: dict[str, PTZMetricsTypes],
-        sidecar: SidecarCameraController = SidecarCameraController(),
+        sidecar: SidecarCameraController = None,
     ) -> None:
         self.cams: dict[str, ONVIFCamera] = {}
         self.config = config
         self.ptz_metrics = ptz_metrics
         self.sidecar = sidecar
+        if sidecar:
+            self.sidecar = sidecar
+        else:
+            self.sidecar = SidecarCameraController(config=config)
 
         for cam_name, cam in config.cameras.items():
             if not cam.enabled:
