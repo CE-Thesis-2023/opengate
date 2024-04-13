@@ -2,6 +2,7 @@
 
 import logging
 import site
+import time
 from enum import Enum
 
 import numpy
@@ -372,63 +373,94 @@ class OnvifController:
         ]["ptz_frame_time"].value
         self.ptz_metrics[camera_name]["ptz_stop_time"].value = 0
         onvif: ONVIFCamera = self.cams[camera_name]["onvif"]
-        move_request = self.cams[camera_name]["relative_move_request"]
+        # move_request = self.cams[camera_name]["relative_move_request"]
+        move_request = self.cams[camera_name]["move_request"]
 
         # function takes in -1 to 1 for pan and tilt, interpolate to the values of the camera.
         # The onvif spec says this can report as +INF and -INF, so this may need to be modified
+        # pan = numpy.interp(
+        #     pan,
+        #     [-1, 1],
+        #     [
+        #         self.cams[camera_name]["relative_fov_range"]["XRange"]["Min"],
+        #         self.cams[camera_name]["relative_fov_range"]["XRange"]["Max"],
+        #     ],
+        # )
+        # tilt = numpy.interp(
+        #     tilt,
+        #     [-1, 1],
+        #     [
+        #         self.cams[camera_name]["relative_fov_range"]["YRange"]["Min"],
+        #         self.cams[camera_name]["relative_fov_range"]["YRange"]["Max"],
+        #     ],
+        # )
         pan = numpy.interp(
             pan,
             [-1, 1],
             [
-                self.cams[camera_name]["relative_fov_range"]["XRange"]["Min"],
-                self.cams[camera_name]["relative_fov_range"]["XRange"]["Max"],
+                -1,
+                1,
             ],
         )
         tilt = numpy.interp(
             tilt,
             [-1, 1],
             [
-                self.cams[camera_name]["relative_fov_range"]["YRange"]["Min"],
-                self.cams[camera_name]["relative_fov_range"]["YRange"]["Max"],
+                -1,
+                1,
             ],
         )
 
-        move_request.Speed = {
+        # move_request.Speed = {
+        #     "PanTilt": {
+        #         "x": speed,
+        #         "y": speed,
+        #     },
+        # }
+
+        # move_request.Velocity.PanTilt.x = pan
+        # move_request.Velocity.PanTilt.y = tilt
+        move_request.Velocity = {
             "PanTilt": {
-                "x": speed,
-                "y": speed,
+                "x": pan,
+                "y": tilt,
             },
         }
 
-        move_request.Translation.PanTilt.x = pan
-        move_request.Translation.PanTilt.y = tilt
-
-        if (
-            "zoom-r" in self.cams[camera_name]["features"]
-            and self.config.cameras[camera_name].onvif.autotracking.zooming
-            == ZoomingModeEnum.relative
-        ):
-            move_request.Speed = {
-                "PanTilt": {
-                    "x": speed,
-                    "y": speed,
-                },
-                "Zoom": {"x": speed},
-            }
-            move_request.Translation.Zoom.x = zoom
-
-        onvif.get_service("ptz").RelativeMove(move_request)
+        # if (
+        #     "zoom-r" in self.cams[camera_name]["features"]
+        #     and self.config.cameras[camera_name].onvif.autotracking.zooming
+        #     == ZoomingModeEnum.relative
+        # ):
+        #     move_request.Speed = {
+        #         "PanTilt": {
+        #             "x": speed,
+        #             "y": speed,
+        #         },
+        #         "Zoom": {"x": speed},
+        #     }
+        #     move_request.Translation.Zoom.x = zoom
+        logging.info(f"Relative move request: {move_request}")
+        onvif.get_service("ptz").ContinuousMove(move_request)
 
         # reset after the move request
-        move_request.Translation.PanTilt.x = 0
-        move_request.Translation.PanTilt.y = 0
+        # move_request.Translation.PanTilt.x = 0
+        # move_request.Translation.PanTilt.y = 0
+        move_request.Velocity = {
+            "PanTilt": {
+                "x": 0,
+                "y": 0,
+            },
+        }
 
-        if (
-            "zoom-r" in self.cams[camera_name]["features"]
-            and self.config.cameras[camera_name].onvif.autotracking.zooming
-            == ZoomingModeEnum.relative
-        ):
-            move_request.Translation.Zoom.x = 0
+        # if (
+        #     "zoom-r" in self.cams[camera_name]["features"]
+        #     and self.config.cameras[camera_name].onvif.autotracking.zooming
+        #     == ZoomingModeEnum.relative
+        # ):
+        #     move_request.Translation.Zoom.x = 0
+        time.sleep(1)
+        onvif.get_service("ptz").ContinuousMove(move_request)
 
         self.cams[camera_name]["active"] = False
 
@@ -557,7 +589,7 @@ class OnvifController:
     def get_service_capabilities(self, camera_name: str) -> None:
         # sidecar already implements this functionality
         if self._is_sidecar(camera_name):
-            return True
+            return "true"
 
         if camera_name not in self.cams.keys():
             logger.error(f"Onvif is not setup for {camera_name}")
@@ -582,14 +614,6 @@ class OnvifController:
         return find_by_key(vars(service_capabilities), "MoveStatus")
 
     def get_camera_status(self, camera_name: str) -> None:
-        move_status = ""
-        if self._is_sidecar(camera_name=camera_name):
-            resp = self.sidecar.get_status(camera_name)
-            move_status = "idle"
-            if resp["status"] is True:
-                move_status = "moving"
-            return
-
         if camera_name not in self.cams.keys():
             logger.error(f"Onvif is not setup for {camera_name}")
             return {}
@@ -611,7 +635,7 @@ class OnvifController:
 
         # if it's not an attribute, see if MoveStatus even exists in the status result
         if pan_tilt_status is None:
-            pan_tilt_status = getattr(status, "MoveStatus", move_status)
+            pan_tilt_status = getattr(status, "MoveStatus", status)
 
             # we're unsupported
             if pan_tilt_status is None or pan_tilt_status.lower() not in [

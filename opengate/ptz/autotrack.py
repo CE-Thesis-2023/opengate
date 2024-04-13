@@ -391,6 +391,7 @@ class PtzAutoTracker:
                     while not self.ptz_metrics[camera]["ptz_motor_stopped"].is_set():
                         self.onvif.get_camera_status(camera)
 
+
                     zoom_out_values.append(
                         self.ptz_metrics[camera]["ptz_zoom_level"].value
                     )
@@ -627,6 +628,7 @@ class PtzAutoTracker:
 
                     else:
                         if pan != 0 or tilt != 0:
+                            logging.debug(f"MoveRelative pan={pan}, tilt={tilt}")
                             self.onvif._move_relative(camera, pan, tilt, 0, 1)
 
                             # Wait until the camera finishes moving
