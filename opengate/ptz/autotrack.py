@@ -391,7 +391,6 @@ class PtzAutoTracker:
                     while not self.ptz_metrics[camera]["ptz_motor_stopped"].is_set():
                         self.onvif.get_camera_status(camera)
 
-
                     zoom_out_values.append(
                         self.ptz_metrics[camera]["ptz_zoom_level"].value
                     )

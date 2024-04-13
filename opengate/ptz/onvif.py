@@ -2,7 +2,6 @@
 
 import logging
 import site
-import time
 from enum import Enum
 
 import numpy
@@ -348,7 +347,14 @@ class OnvifController:
 
         onvif.get_service("ptz").ContinuousMove(move_request)
 
-    def _move_relative(self, camera_name: str, pan, tilt, zoom, speed) -> None:
+    def _move_relative(
+        self,
+        camera_name: str,
+        pan: float,
+        tilt: float,
+        zoom: float,
+        speed: float,
+    ) -> None:
         if "pt-r-fov" not in self.cams[camera_name]["features"]:
             logger.error(f"{camera_name} does not support ONVIF RelativeMove (FOV).")
             return
@@ -372,95 +378,72 @@ class OnvifController:
             camera_name
         ]["ptz_frame_time"].value
         self.ptz_metrics[camera_name]["ptz_stop_time"].value = 0
-        onvif: ONVIFCamera = self.cams[camera_name]["onvif"]
-        # move_request = self.cams[camera_name]["relative_move_request"]
-        move_request = self.cams[camera_name]["move_request"]
+        # onvif: ONVIFCamera = self.cams[camera_name]["onvif"]
+        sidecar = self.sidecar
+        move_request = self.cams[camera_name]["relative_move_request"]
 
         # function takes in -1 to 1 for pan and tilt, interpolate to the values of the camera.
         # The onvif spec says this can report as +INF and -INF, so this may need to be modified
-        # pan = numpy.interp(
-        #     pan,
-        #     [-1, 1],
-        #     [
-        #         self.cams[camera_name]["relative_fov_range"]["XRange"]["Min"],
-        #         self.cams[camera_name]["relative_fov_range"]["XRange"]["Max"],
-        #     ],
-        # )
-        # tilt = numpy.interp(
-        #     tilt,
-        #     [-1, 1],
-        #     [
-        #         self.cams[camera_name]["relative_fov_range"]["YRange"]["Min"],
-        #         self.cams[camera_name]["relative_fov_range"]["YRange"]["Max"],
-        #     ],
-        # )
         pan = numpy.interp(
             pan,
             [-1, 1],
             [
-                -1,
-                1,
+                self.cams[camera_name]["relative_fov_range"]["XRange"]["Min"],
+                self.cams[camera_name]["relative_fov_range"]["XRange"]["Max"],
             ],
         )
         tilt = numpy.interp(
             tilt,
             [-1, 1],
             [
-                -1,
-                1,
+                self.cams[camera_name]["relative_fov_range"]["YRange"]["Min"],
+                self.cams[camera_name]["relative_fov_range"]["YRange"]["Max"],
             ],
         )
 
-        # move_request.Speed = {
-        #     "PanTilt": {
-        #         "x": speed,
-        #         "y": speed,
-        #     },
-        # }
-
-        # move_request.Velocity.PanTilt.x = pan
-        # move_request.Velocity.PanTilt.y = tilt
-        move_request.Velocity = {
+        move_request.Speed = {
             "PanTilt": {
-                "x": pan,
-                "y": tilt,
+                "x": speed,
+                "y": speed,
             },
         }
 
-        # if (
-        #     "zoom-r" in self.cams[camera_name]["features"]
-        #     and self.config.cameras[camera_name].onvif.autotracking.zooming
-        #     == ZoomingModeEnum.relative
-        # ):
-        #     move_request.Speed = {
-        #         "PanTilt": {
-        #             "x": speed,
-        #             "y": speed,
-        #         },
-        #         "Zoom": {"x": speed},
-        #     }
-        #     move_request.Translation.Zoom.x = zoom
+        move_request.Translation.PanTilt.x = pan
+        move_request.Translation.PanTilt.y = tilt
+
+        if (
+            "zoom-r" in self.cams[camera_name]["features"]
+            and self.config.cameras[camera_name].onvif.autotracking.zooming
+            == ZoomingModeEnum.relative
+        ):
+            move_request.Speed = {
+                "PanTilt": {
+                    "x": speed,
+                    "y": speed,
+                },
+                "Zoom": {"x": speed},
+            }
+            move_request.Translation.Zoom.x = zoom
         logging.info(f"Relative move request: {move_request}")
-        onvif.get_service("ptz").ContinuousMove(move_request)
+
+        sidecar._move_relative_onvif(
+            req=move_request,
+            height=self.config.cameras[camera_name].detect.height,
+            width=self.config.cameras[camera_name].detect.width,
+            camera_name=camera_name,
+        )
+        # onvif.get_service("ptz").RelativeMove(move_request)
 
         # reset after the move request
-        # move_request.Translation.PanTilt.x = 0
-        # move_request.Translation.PanTilt.y = 0
-        move_request.Velocity = {
-            "PanTilt": {
-                "x": 0,
-                "y": 0,
-            },
-        }
+        move_request.Translation.PanTilt.x = 0
+        move_request.Translation.PanTilt.y = 0
 
-        # if (
-        #     "zoom-r" in self.cams[camera_name]["features"]
-        #     and self.config.cameras[camera_name].onvif.autotracking.zooming
-        #     == ZoomingModeEnum.relative
-        # ):
-        #     move_request.Translation.Zoom.x = 0
-        time.sleep(1)
-        onvif.get_service("ptz").ContinuousMove(move_request)
+        if (
+            "zoom-r" in self.cams[camera_name]["features"]
+            and self.config.cameras[camera_name].onvif.autotracking.zooming
+            == ZoomingModeEnum.relative
+        ):
+            move_request.Translation.Zoom.x = 0
 
         self.cams[camera_name]["active"] = False
 

@@ -21,11 +21,41 @@ class SidecarCameraController:
         resp.raise_for_status()
         return resp.json()
 
-    def move_relative(self, camera_name: str, pan: float, tilt: float, zoom: float):
+    def _move_relative_onvif(
+        self,
+        req: Dict,
+        height: int,
+        width: int,
+        camera_name: str,
+    ):
+        return self.move_relative(
+            camera_name=camera_name,
+            pan=req["Translation"]["PanTilt"]["x"],
+            tilt=req["Translation"]["PanTilt"]["y"],
+            zoom=req["Translation"]["Zoom"]["x"],
+            height=height,
+            width=width,
+        )
+
+    def move_relative(
+        self,
+        camera_name: str,
+        pan: float,
+        tilt: float,
+        zoom: float,
+        height: float,
+        width: float,
+    ):
         req = {
-            "pan": pan,
-            "tilt": tilt,
-            "zoom": zoom,
+            "relative": {
+                "positionX": pan,
+                "positionY": tilt,
+                "relativeZoom": zoom,
+            },
+            "frame": {
+                "height": height,
+                "width": width,
+            },
         }
         p = self._get_query_url(camera_name=camera_name)
         p = p + f"/ptz/relative?name={camera_name}"
