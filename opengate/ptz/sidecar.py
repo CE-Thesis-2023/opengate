@@ -37,6 +37,27 @@ class SidecarCameraController:
             width=width,
         )
 
+    def move_continous(
+        self,
+        camera_name: str,
+        pan: int,
+        tilt: int,
+        duration: int = 1,
+    ):
+        req = {
+            "pan": pan,
+            "tilt": tilt,
+            "duration": duration,
+        }
+        p = self._get_query_url(camera_name="camera")
+        p = p + f"/ptz/continuous?name={camera_name}"
+        logging.info(f"Sending request to {p}")
+        resp = requests.post(
+            url=p, json=req, headers={"Content-Type": "application/json"}, timeout=2
+        )
+        resp.raise_for_status()
+        return
+
     def move_relative(
         self,
         camera_name: str,
@@ -64,7 +85,7 @@ class SidecarCameraController:
             url=p, json=req, headers={"Content-Type": "application/json"}, timeout=2
         )
         resp.raise_for_status()
-        return resp.json()
+        return
 
     def get_status(self, camera_name: str) -> Dict:
         p = self._get_query_url(camera_name=camera_name)
