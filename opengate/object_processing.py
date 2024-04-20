@@ -48,7 +48,8 @@ def on_edge(box, frame_shape):
 def has_better_attr(current_thumb, new_obj, attr_label) -> bool:
     max_new_attr = max(
         [0]
-        + [area(a["box"]) for a in new_obj["attributes"] if a["label"] == attr_label]
+        + [area(a["box"])
+           for a in new_obj["attributes"] if a["label"] == attr_label]
     )
     max_current_attr = max(
         [0]
@@ -219,7 +220,8 @@ class TrackedObject:
             }
             if len(recognized_logos) > 0:
                 max_logo = max(recognized_logos, key=recognized_logos.get)
-                self.obj_data["sub_label"] = (max_logo, recognized_logos[max_logo])
+                self.obj_data["sub_label"] = (
+                    max_logo, recognized_logos[max_logo])
 
         # check for significant change
         if not self.false_positive:
@@ -283,7 +285,8 @@ class TrackedObject:
         }
 
         if include_thumbnail:
-            event["thumbnail"] = base64.b64encode(self.get_thumbnail()).decode("utf-8")
+            event["thumbnail"] = base64.b64encode(
+                self.get_thumbnail()).decode("utf-8")
 
         return event
 
@@ -387,7 +390,7 @@ class TrackedObject:
                 box_size,
                 multiplier=1.1,
             )
-            best_frame = best_frame[region[1] : region[3], region[0] : region[2]]
+            best_frame = best_frame[region[1]: region[3], region[0]: region[2]]
 
         if height:
             width = int(height * best_frame.shape[1] / best_frame.shape[0])
@@ -464,7 +467,8 @@ class CameraState:
         self.tracked_objects: dict[str, TrackedObject] = {}
         self.frame_cache = {}
         self.zone_objects = defaultdict(list)
-        self._current_frame = np.zeros(self.camera_config.frame_shape_yuv, np.uint8)
+        self._current_frame = np.zeros(
+            self.camera_config.frame_shape_yuv, np.uint8)
         self.current_frame_lock = threading.Lock()
         self.current_frame_time = 0.0
         self.motion_boxes = []
@@ -477,7 +481,8 @@ class CameraState:
         with self.current_frame_lock:
             frame_copy = np.copy(self._current_frame)
             frame_time = self.current_frame_time
-            tracked_objects = {k: v.to_dict() for k, v in self.tracked_objects.items()}
+            tracked_objects = {k: v.to_dict()
+                               for k, v in self.tracked_objects.items()}
             motion_boxes = self.motion_boxes.copy()
             regions = self.regions.copy()
 
@@ -568,7 +573,8 @@ class CameraState:
                     )
                     else 2
                 )
-                cv2.drawContours(frame_copy, [zone.contour], -1, zone.color, thickness)
+                cv2.drawContours(
+                    frame_copy, [zone.contour], -1, zone.color, thickness)
 
         if draw_options.get("mask"):
             mask_overlay = np.where(self.camera_config.motion.mask == [0])
@@ -695,7 +701,8 @@ class CameraState:
                 ):
                     self.best_objects[object_type] = obj
                     for c in self.callbacks["snapshot"]:
-                        c(self.name, self.best_objects[object_type], frame_time)
+                        c(self.name,
+                          self.best_objects[object_type], frame_time)
             else:
                 self.best_objects[object_type] = obj
                 for c in self.callbacks["snapshot"]:
@@ -813,7 +820,8 @@ class TrackedObjectProcessor(threading.Thread):
                 "after": after,
                 "type": "new" if obj.previous["false_positive"] else "update",
             }
-            self.dispatcher.publish("events", json.dumps(message), retain=False)
+            self.dispatcher.publish(
+                "events", json.dumps(message), retain=False)
             obj.previous = after
             self.event_queue.put(
                 (
@@ -825,7 +833,8 @@ class TrackedObjectProcessor(threading.Thread):
             )
 
         def autotrack(camera, obj: TrackedObject, current_frame_time):
-            self.ptz_autotracker_thread.ptz_autotracker.autotrack_object(camera, obj)
+            self.ptz_autotracker_thread.ptz_autotracker.autotrack_object(
+                camera, obj)
 
         def end(camera, obj: TrackedObject, current_frame_time):
             # populate has_snapshot
@@ -843,10 +852,12 @@ class TrackedObjectProcessor(threading.Thread):
                     quality=snapshot_config.quality,
                 )
                 if jpg_bytes is None:
-                    logger.warning(f"Unable to save snapshot for {obj.obj_data['id']}.")
+                    logger.warning(
+                        f"Unable to save snapshot for {obj.obj_data['id']}.")
                 else:
                     with open(
-                        os.path.join(CLIPS_DIR, f"{camera}-{obj.obj_data['id']}.jpg"),
+                        os.path.join(
+                            CLIPS_DIR, f"{camera}-{obj.obj_data['id']}.jpg"),
                         "wb",
                     ) as j:
                         j.write(jpg_bytes)
@@ -874,8 +885,10 @@ class TrackedObjectProcessor(threading.Thread):
                     "after": obj.to_dict(),
                     "type": "end",
                 }
-                self.dispatcher.publish("events", json.dumps(message), retain=False)
-                self.ptz_autotracker_thread.ptz_autotracker.end_object(camera, obj)
+                self.dispatcher.publish(
+                    "events", json.dumps(message), retain=False)
+                self.ptz_autotracker_thread.ptz_autotracker.end_object(
+                    camera, obj)
 
             self.event_queue.put(
                 (
@@ -903,13 +916,14 @@ class TrackedObjectProcessor(threading.Thread):
                     )
                 else:
                     self.dispatcher.publish(
-                        f"{camera}/{obj.obj_data['label']}/snapshot",
+                        f"{camera}/{obj.obj_data['id']}/snapshot",
                         jpg_bytes,
                         retain=True,
                     )
 
         def object_status(camera, object_name, status):
-            self.dispatcher.publish(f"{camera}/{object_name}", status, retain=False)
+            self.dispatcher.publish(
+                f"{camera}/{object_name}", status, retain=False)
 
         for camera in self.config.cameras.keys():
             camera_state = CameraState(
