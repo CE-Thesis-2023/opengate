@@ -1,5 +1,4 @@
-import axios, { AxiosError } from 'axios';
-import { Fragment } from 'preact';
+import axios from 'axios';
 import { route } from 'preact-router';
 import { useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import useSWR from 'swr';
@@ -10,7 +9,6 @@ import Button from '../components/Button';
 import Calendar from '../components/Calendar';
 import Dialog from '../components/Dialog';
 import Heading from '../components/Heading';
-import Link from '../components/Link';
 import Menu, { MenuItem } from '../components/Menu';
 import MultiSelect from '../components/MultiSelect';
 import { Tabs, TextTab } from '../components/Tabs';
@@ -31,8 +29,6 @@ import { MenuOpen } from '../icons/MenuOpen';
 import { Score } from '../icons/Score';
 import { Snapshot } from '../icons/Snapshot';
 import { StarRecording } from '../icons/StarRecording';
-import { Submitted } from '../icons/Submitted';
-import { UploadPlus } from '../icons/UploadPlus';
 import { Zone } from '../icons/Zone';
 import { formatUnixTimestampToDateTime, getDurationFromTimestamps } from '../utils/dateUtil';
 
@@ -71,25 +67,15 @@ export default function Events({ path, ...props }) {
     showDownloadMenu: false,
     showDatePicker: false,
     showCalendar: false,
-    showPlusSubmit: false,
   });
-  const [plusSubmitEvent, setPlusSubmitEvent] = useState({
-    id: null,
-    label: null,
-    validBox: null,
-  });
-  const [uploading, setUploading] = useState([]);
-  const [uploadErrors, setUploadErrors] = useState([]);
   const [viewEvent, setViewEvent] = useState(props.event);
   const [eventOverlay, setEventOverlay] = useState();
-  const [eventDetailType, setEventDetailType] = useState('clip');
   const [downloadEvent, setDownloadEvent] = useState({
     id: null,
     label: null,
     box: null,
     has_clip: false,
     has_snapshot: false,
-    plus_id: undefined,
     end_time: null,
   });
   const [deleteFavoriteState, setDeleteFavoriteState] = useState({
@@ -241,21 +227,10 @@ export default function Events({ path, ...props }) {
       label: event.label,
       has_clip: event.has_clip,
       has_snapshot: event.has_snapshot,
-      plus_id: event.plus_id,
       end_time: event.end_time,
     }));
     downloadButton.current = e.target;
     setState({ ...state, showDownloadMenu: true });
-  };
-
-  const showSubmitToPlus = (event_id, label, box, e) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    // if any of the box coordinates are > 1, then the box data is from an older version
-    // and not valid to submit to plus with the snapshot image
-    setPlusSubmitEvent({ id: event_id, label, validBox: !box.some((d) => d > 1) });
-    setState({ ...state, showDownloadMenu: false, showPlusSubmit: true });
   };
 
   const handleSelectDateRange = useCallback(
@@ -293,13 +268,6 @@ export default function Events({ path, ...props }) {
     [path, searchParams, setSearchParams]
   );
 
-  const onClickFilterSubmitted = useCallback(() => {
-    if (++searchParams.is_submitted > 1) {
-      searchParams.is_submitted = -1;
-    }
-    onFilter('is_submitted', searchParams.is_submitted);
-  }, [searchParams, onFilter]);
-
   const isDone = (eventPages?.[eventPages.length - 1]?.length ?? 0) < API_LIMIT;
 
   // hooks for infinite scroll
@@ -321,62 +289,6 @@ export default function Events({ path, ...props }) {
     },
     [size, setSize, isValidating, isDone]
   );
-
-  const onSendToPlus = async (id, false_positive, validBox) => {
-    if (uploading.includes(id)) {
-      return;
-    }
-
-    setUploading((prev) => [...prev, id]);
-
-    try {
-      const response = false_positive
-        ? await axios.put(`events/${id}/false_positive`)
-        : await axios.post(`events/${id}/plus`, validBox ? { include_annotation: 1 } : {});
-
-      if (response.status === 200) {
-        mutate(
-          (pages) =>
-            pages.map((page) =>
-              page.map((event) => {
-                if (event.id === id) {
-                  return { ...event, plus_id: response.data.plus_id };
-                }
-                return event;
-              })
-            ),
-          false
-        );
-      }
-    } catch (e) {
-      if (
-        e instanceof AxiosError &&
-        (e.response.data.message === 'Error uploading annotation, unsupported label provided.' ||
-          e.response.data.message === 'Error uploading false positive, unsupported label provided.')
-      ) {
-        setUploadErrors((prev) => [...prev, { id, isUnsupported: true }]);
-        return;
-      }
-      setUploadErrors((prev) => [...prev, { id }]);
-      throw e;
-    } finally {
-      setUploading((prev) => prev.filter((i) => i !== id));
-    }
-
-    if (state.showDownloadMenu && downloadEvent.id === id) {
-      setState({ ...state, showDownloadMenu: false });
-    }
-
-    setState({ ...state, showPlusSubmit: false });
-  };
-
-  const handleEventDetailTabChange = (index) => {
-    setEventDetailType(index == 0 ? 'clip' : 'image');
-  };
-
-  if (!config) {
-    return <ActivityIndicator />;
-  }
 
   return (
     <div className="space-y-4 p-2 px-4 w-full">
@@ -427,15 +339,6 @@ export default function Events({ path, ...props }) {
         )}
 
         <div className="ml-auto flex">
-          {config.plus.enabled && (
-            <Submitted
-              className="h-10 w-10 text-yellow-300 cursor-pointer ml-auto"
-              onClick={() => onClickFilterSubmitted()}
-              inner_fill={searchParams.is_submitted == 1 ? 'currentColor' : 'gray'}
-              outer_stroke={searchParams.is_submitted >= 0 ? 'currentColor' : 'gray'}
-            />
-          )}
-
           <StarRecording
             className="h-10 w-10 text-yellow-300 cursor-pointer ml-auto"
             onClick={() => onFilter('favorites', searchParams.favorites ? 0 : 1)}
@@ -468,25 +371,6 @@ export default function Events({ path, ...props }) {
               value="clip"
               href={`${apiHost}api/events/${downloadEvent.id}/clip.mp4?download=true`}
               download
-            />
-          )}
-          {(event?.data?.type || 'object') == 'object' &&
-            downloadEvent.end_time &&
-            downloadEvent.has_snapshot &&
-            !downloadEvent.plus_id && (
-              <MenuItem
-                icon={UploadPlus}
-                label={uploading.includes(downloadEvent.id) ? 'Uploading...' : 'Send to OpenGate+'}
-                value="plus"
-                onSelect={() => showSubmitToPlus(downloadEvent.id, downloadEvent.label, downloadEvent.box)}
-              />
-            )}
-          {downloadEvent.plus_id && (
-            <MenuItem
-              icon={UploadPlus}
-              label={'Sent to OpenGate+'}
-              value="plus"
-              onSelect={() => setState({ ...state, showDownloadMenu: false })}
             />
           )}
         </Menu>
@@ -537,98 +421,6 @@ export default function Events({ path, ...props }) {
             </Calendar>
           </Menu>
         </span>
-      )}
-      {state.showPlusSubmit && (
-        <Dialog>
-          {config.plus.enabled ? (
-            <>
-              <div className="p-4">
-                <Heading size="lg">Submit to OpenGate+</Heading>
-
-                <img
-                  className="flex-grow-0"
-                  src={`${apiHost}api/events/${plusSubmitEvent.id}/snapshot.jpg`}
-                  alt={`${plusSubmitEvent.label}`}
-                />
-
-                {plusSubmitEvent.validBox ? (
-                  <p className="mb-2">
-                    Objects in locations you want to avoid are not false positives. Submitting them as false positives
-                    will confuse the model.
-                  </p>
-                ) : (
-                  <p className="mb-2">
-                    Events prior to version 0.13 can only be submitted to OpenGate+ without annotations.
-                  </p>
-                )}
-              </div>
-              {plusSubmitEvent.validBox ? (
-                <div className="p-2 flex justify-start flex-row-reverse space-x-2">
-                  <Button className="ml-2" onClick={() => setState({ ...state, showPlusSubmit: false })} type="text">
-                    {uploading.includes(plusSubmitEvent.id) ? 'Close' : 'Cancel'}
-                  </Button>
-                  <Button
-                    className="ml-2"
-                    color="red"
-                    onClick={() => onSendToPlus(plusSubmitEvent.id, true, plusSubmitEvent.validBox)}
-                    disabled={uploading.includes(plusSubmitEvent.id)}
-                    type="text"
-                  >
-                    This is not a {plusSubmitEvent.label}
-                  </Button>
-                  <Button
-                    className="ml-2"
-                    color="green"
-                    onClick={() => onSendToPlus(plusSubmitEvent.id, false, plusSubmitEvent.validBox)}
-                    disabled={uploading.includes(plusSubmitEvent.id)}
-                    type="text"
-                  >
-                    This is a {plusSubmitEvent.label}
-                  </Button>
-                </div>
-              ) : (
-                <div className="p-2 flex justify-start flex-row-reverse space-x-2">
-                  <Button
-                    className="ml-2"
-                    onClick={() => setState({ ...state, showPlusSubmit: false })}
-                    disabled={uploading.includes(plusSubmitEvent.id)}
-                    type="text"
-                  >
-                    {uploading.includes(plusSubmitEvent.id) ? 'Close' : 'Cancel'}
-                  </Button>
-                  <Button
-                    className="ml-2"
-                    onClick={() => onSendToPlus(plusSubmitEvent.id, false, plusSubmitEvent.validBox)}
-                    disabled={uploading.includes(plusSubmitEvent.id)}
-                    type="text"
-                  >
-                    Submit to OpenGate+
-                  </Button>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="p-4">
-                <Heading size="lg">Setup a OpenGate+ Account</Heading>
-                <p className="mb-2">In order to submit images to OpenGate+, you first need to setup an account.</p>
-                <a
-                  className="text-blue-500 hover:underline"
-                  href="https://plus.opengate.video"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  https://plus.opengate.video
-                </a>
-              </div>
-              <div className="p-2 flex justify-start flex-row-reverse space-x-2">
-                <Button className="ml-2" onClick={() => setState({ ...state, showPlusSubmit: false })} type="text">
-                  Close
-                </Button>
-              </div>
-            </>
-          )}
-        </Dialog>
       )}
       {deleteFavoriteState.showDeleteFavorite && (
         <Dialog>
@@ -690,13 +482,9 @@ export default function Events({ path, ...props }) {
                     key={event.id}
                     config={config}
                     event={event}
-                    eventDetailType={eventDetailType}
                     eventOverlay={eventOverlay}
                     viewEvent={viewEvent}
                     setViewEvent={setViewEvent}
-                    uploading={uploading}
-                    uploadErrors={uploadErrors}
-                    handleEventDetailTabChange={handleEventDetailTabChange}
                     onEventFrameSelected={onEventFrameSelected}
                     onDelete={onDelete}
                     onDispose={() => {
@@ -710,7 +498,6 @@ export default function Events({ path, ...props }) {
                       });
                     }}
                     onSave={onSave}
-                    showSubmitToPlus={showSubmitToPlus}
                   />
                 );
               })}
@@ -729,15 +516,11 @@ export default function Events({ path, ...props }) {
                   key={event.id}
                   config={config}
                   event={event}
-                  eventDetailType={eventDetailType}
                   eventOverlay={eventOverlay}
                   viewEvent={viewEvent}
                   setViewEvent={setViewEvent}
                   lastEvent={lastEvent}
                   lastEventRef={lastEventRef}
-                  uploading={uploading}
-                  uploadErrors={uploadErrors}
-                  handleEventDetailTabChange={handleEventDetailTabChange}
                   onEventFrameSelected={onEventFrameSelected}
                   onDelete={onDelete}
                   onDispose={() => {
@@ -751,7 +534,6 @@ export default function Events({ path, ...props }) {
                     });
                   }}
                   onSave={onSave}
-                  showSubmitToPlus={showSubmitToPlus}
                 />
               );
             });
@@ -775,8 +557,6 @@ function Event({
   setViewEvent,
   lastEvent,
   lastEventRef,
-  uploading,
-  uploadErrors,
   handleEventDetailTabChange,
   onEventFrameSelected,
   onDelete,
@@ -784,21 +564,7 @@ function Event({
   onDownloadClick,
   onReady,
   onSave,
-  showSubmitToPlus,
 }) {
-  const getUploadButtonState = (eventId) => {
-    const isUploading = uploading.includes(eventId);
-    const hasUploadError = uploadErrors.find((event) => event.id === eventId);
-    if (hasUploadError) {
-      if (hasUploadError.isUnsupported) {
-        return { isDisabled: true, label: 'Unsupported label' };
-      }
-      return { isDisabled: isUploading, label: 'Upload error' };
-    }
-
-    const label = isUploading ? 'Uploading...' : 'Send to OpenGate+';
-    return { isDisabled: isUploading, label };
-  };
   const apiHost = useApiHost();
 
   return (
@@ -862,31 +628,6 @@ function Event({
                 ? null
                 : `, ${event.sub_label}: ${(event?.data?.sub_label_score * 100).toFixed(0)}%`}
             </div>
-          </div>
-          <div class="hidden sm:flex flex-col justify-end mr-2">
-            {event.end_time && event.has_snapshot && (event?.data?.type || 'object') == 'object' && (
-              <Fragment>
-                {event.plus_id ? (
-                  <div className="uppercase text-xs underline">
-                    <Link
-                      href={`https://plus.opengate.video/dashboard/edit-image/?id=${event.plus_id}`}
-                      target="_blank"
-                      rel="nofollow"
-                    >
-                      Edit in OpenGate+
-                    </Link>
-                  </div>
-                ) : (
-                  <Button
-                    color="gray"
-                    disabled={getUploadButtonState(event.id).isDisabled}
-                    onClick={(e) => showSubmitToPlus(event.id, event.label, event?.data?.box || event.box, e)}
-                  >
-                    {getUploadButtonState(event.id).label}
-                  </Button>
-                )}
-              </Fragment>
-            )}
           </div>
           <div class="flex flex-col">
             <Delete

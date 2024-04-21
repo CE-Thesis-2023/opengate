@@ -13,7 +13,6 @@ from playhouse.sqliteq import SqliteQueueDatabase
 from opengate.config import OpenGateConfig
 from opengate.http import create_app
 from opengate.models import Event, Recordings
-from opengate.plus import PlusApi
 from opengate.test.const import TEST_DB, TEST_DB_CLEANUPS
 
 
@@ -120,7 +119,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
         id2 = "7890.random"
@@ -156,7 +154,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
 
@@ -177,7 +174,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
         bad_id = "654321.other"
@@ -197,7 +193,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
 
@@ -219,7 +214,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
 
@@ -245,7 +239,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         morning_id = "123456.random"
         evening_id = "654321.random"
@@ -283,7 +276,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
         sub_label = "sub"
@@ -318,7 +310,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
         sub_label = "sub"
@@ -343,7 +334,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
 
         with app.test_client() as client:
@@ -360,7 +350,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         id = "123456.random"
 
@@ -380,7 +369,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
         )
         mock_stats.return_value = self.test_stats
 

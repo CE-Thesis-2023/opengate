@@ -9,8 +9,6 @@ BIRDSEYE_PIPE = "/tmp/cache/birdseye"
 CACHE_DIR = "/tmp/cache"
 YAML_EXT = (".yaml", ".yml")
 OPENGATE_LOCALHOST = "http://127.0.0.1:5000"
-PLUS_ENV_VAR = "PLUS_API_KEY"
-PLUS_API_HOST = "https://api.opengate.video"
 
 # Attribute & Object Consts
 
@@ -74,3 +72,12 @@ AUTOTRACKING_MAX_MOVE_METRICS = 500
 AUTOTRACKING_ZOOM_OUT_HYSTERESIS = 1.2
 AUTOTRACKING_ZOOM_IN_HYSTERESIS = 0.9
 AUTOTRACKING_ZOOM_EDGE_THRESHOLD = 0.05
+
+OPENGATE_EMBLEM = """
+   ____  _____  ______ _   _  _____       _______ ______
+  / __ \|  __ \|  ____| \ | |/ ____|   /\|__   __|  ____|
+ | |  | | |__) | |__  |  \| | |  __   /  \  | |  | |__
+ | |  | |  ___/|  __| | . ` | | |_ | / /\ \ | |  |  __|
+ | |__| | |    | |____| |\  | |__| |/ ____ \| |  | |____
+  \____/|_|    |______|_| \_|\_____/_/    \_|_|  |______|
+"""

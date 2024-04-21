@@ -9,8 +9,6 @@ from multiprocessing.synchronize import Event as MpEvent
 from typing import Any, Optional
 
 import psutil
-import requests
-from requests.exceptions import RequestException
 
 from opengate.comms.dispatcher import Dispatcher
 from opengate.config import OpenGateConfig
@@ -30,26 +28,6 @@ from opengate.version import VERSION
 logger = logging.getLogger(__name__)
 
 
-def get_latest_version(config: OpenGateConfig) -> str:
-    if not config.telemetry.version_check:
-        return "disabled"
-
-    try:
-        request = requests.get(
-            "https://api.github.com/repos/blakeblackshear/opengate/releases/latest",
-            timeout=10,
-        )
-    except RequestException:
-        return "unknown"
-
-    response = request.json()
-
-    if request.ok and response and "tag_name" in response:
-        return str(response.get("tag_name").replace("v", ""))
-    else:
-        return "unknown"
-
-
 def stats_init(
     config: OpenGateConfig,
     camera_metrics: dict[str, CameraMetricsTypes],
@@ -60,7 +38,7 @@ def stats_init(
         "camera_metrics": camera_metrics,
         "detectors": detectors,
         "started": int(time.time()),
-        "latest_opengate_version": get_latest_version(config),
+        "latest_opengate_version": "0.13.2",
         "last_updated": int(time.time()),
         "processes": processes,
     }

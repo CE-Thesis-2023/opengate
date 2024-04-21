@@ -9,6 +9,7 @@ services:
       - '44' # video
       - '46' # plugdev
     shm_size: '256mb'
+    #    network_mode: 'host'
     build:
       context: .
       dockerfile: docker/main/Dockerfile
@@ -24,9 +25,10 @@ services:
     #                     capabilities: [gpu]
     environment:
       YOLO_MODELS: yolov7-320
+      LIBVA_DRIVER_NAME: radeonsi
     devices:
       - /dev/bus/usb:/dev/bus/usb
-      # - /dev/dri:/dev/dri # for intel hwaccel, needs to be updated for your hardware
+      - /dev/dri:/dev/dri # for intel hwaccel, needs to be updated for your hardware
     volumes:
       - .:/workspace/opengate:cached
       - ./web/dist:/opt/opengate/web:cached
@@ -34,3 +36,6 @@ services:
       - ./config:/config
       - ./debug:/media/opengate
       - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'

@@ -49,10 +49,7 @@ TIMEOUT_PARAM = (
 )
 
 _gpu_selector = LibvaGpuSelector()
-_user_agent_args = [
-    "-user_agent",
-    f"FFmpeg OpenGate/{VERSION}",
-]
+_user_agent_args = []
 
 PRESETS_HW_ACCEL_DECODE = {
     "preset-rpi-64-h264": "-c:v:1 h264_v4l2m2m",

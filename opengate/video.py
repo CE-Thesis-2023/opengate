@@ -566,10 +566,12 @@ def process_frames(
 
         current_frame_time.value = frame_time
         ptz_metrics["ptz_frame_time"].value = frame_time
+        key = f"{camera_name}{frame_time}"
 
-        frame = frame_manager.get(
-            f"{camera_name}{frame_time}", (frame_shape[0] * 3 // 2, frame_shape[1])
-        )
+        # The ratio is because YUV later reduces the frame size by 1.5
+        # So we bumped up the ratio here, later reduced it in the YUV conversion
+        # and gets a perfect frame
+        frame = frame_manager.get(key, (frame_shape[0] * 3 // 2, frame_shape[1]))
 
         if frame is None:
             logger.info(f"{camera_name}: frame {frame_time} is not in memory store.")

@@ -239,6 +239,7 @@ class PtzAutoTracker:
         self.move_queue_locks[camera] = threading.Lock()
 
         # handle onvif constructor failing due to no connection
+        logging.info(f"Autotracker setup: {self.onvif.cams}")
         if camera not in self.onvif.cams:
             logger.warning(
                 f"Disabling autotracking for {camera}: onvif connection failed"
@@ -627,6 +628,7 @@ class PtzAutoTracker:
 
                     else:
                         if pan != 0 or tilt != 0:
+                            logging.debug(f"MoveRelative pan={pan}, tilt={tilt}")
                             self.onvif._move_relative(camera, pan, tilt, 0, 1)
 
                             # Wait until the camera finishes moving

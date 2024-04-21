@@ -29,6 +29,7 @@ from opengate.const import (
     DEFAULT_DB_PATH,
     EXPORT_DIR,
     MODEL_CACHE_DIR,
+    OPENGATE_EMBLEM,
     RECORD_DIR,
 )
 from opengate.events.audio import listen_to_audio
@@ -41,7 +42,6 @@ from opengate.models import Event, Recordings, RecordingsToDelete, Regions, Time
 from opengate.object_detection import ObjectDetectProcess
 from opengate.object_processing import TrackedObjectProcessor
 from opengate.output import output_frames
-from opengate.plus import PlusApi
 from opengate.ptz.autotrack import PtzAutoTrackerThread
 from opengate.ptz.onvif import OnvifController
 from opengate.record.cleanup import RecordingCleanup
@@ -66,7 +66,6 @@ class OpenGateApp:
         self.detection_out_events: dict[str, MpEvent] = {}
         self.detection_shms: list[mp.shared_memory.SharedMemory] = []
         self.log_queue: Queue = mp.Queue()
-        self.plus_api = PlusApi()
         self.camera_metrics: dict[str, CameraMetricsTypes] = {}
         self.feature_metrics: dict[str, FeatureMetricsTypes] = {}
         self.ptz_metrics: dict[str, PTZMetricsTypes] = {}
@@ -110,7 +109,7 @@ class OpenGateApp:
             config_file = config_file_yaml
 
         user_config = OpenGateConfig.parse_file(config_file)
-        self.config = user_config.runtime_config(self.plus_api)
+        self.config = user_config.runtime_config()
 
         for camera_name in self.config.cameras.keys():
             # create camera_metrics
@@ -269,6 +268,12 @@ class OpenGateApp:
         # Queue for inter process communication
         self.inter_process_queue: Queue = mp.Queue()
 
+    def init_go2rtc(self) -> None:
+        for proc in psutil.process_iter(["pid", "name"]):
+            if proc.info["name"] == "go2rtc":
+                logger.info(f"go2rtc process pid: {proc.info['pid']}")
+                self.processes["go2rtc"] = proc.info["pid"]
+
     def init_database(self) -> None:
         def vacuum_db(db: SqliteExtDatabase) -> None:
             logger.info("Running database vacuum")
@@ -331,12 +336,6 @@ class OpenGateApp:
 
         migrate_db.close()
 
-    def init_go2rtc(self) -> None:
-        for proc in psutil.process_iter(["pid", "name"]):
-            if proc.info["name"] == "go2rtc":
-                logger.info(f"go2rtc process pid: {proc.info['pid']}")
-                self.processes["go2rtc"] = proc.info["pid"]
-
     def init_recording_manager(self) -> None:
         recording_process = mp.Process(
             target=manage_recordings,
@@ -396,7 +395,6 @@ class OpenGateApp:
             self.storage_maintainer,
             self.onvif_controller,
             self.external_event_processor,
-            self.plus_api,
         )
 
     def init_onvif(self) -> None:
@@ -406,6 +404,7 @@ class OpenGateApp:
         comms: list[Communicator] = []
 
         if self.config.mqtt.enabled:
+            logging.debug("MQTT enabled")
             comms.append(MqttClient(self.config))
 
         comms.append(WebSocketClient(self.config))
@@ -636,6 +635,8 @@ class OpenGateApp:
         )
         parser.add_argument("--validate-config", action="store_true")
         args = parser.parse_args()
+
+        print(OPENGATE_EMBLEM)
 
         self.init_logger()
         logger.info(f"Starting OpenGate ({VERSION})")

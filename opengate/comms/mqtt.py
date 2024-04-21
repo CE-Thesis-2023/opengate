@@ -20,6 +20,7 @@ class MqttClient(Communicator):  # type: ignore[misc]
 
     def subscribe(self, receiver: Callable) -> None:
         """Wrapper for allowing dispatcher to subscribe."""
+        logger.info("Subscribing to MQTT")
         self._dispatcher = receiver
         self._start()
 
@@ -139,7 +140,7 @@ class MqttClient(Communicator):  # type: ignore[misc]
                 )
 
         self.connected = True
-        logger.debug("MQTT connected")
+        logger.info("MQTT connected")
         client.subscribe(f"{self.mqtt_config.topic_prefix}/#")
         self._set_initial_topics()
 
@@ -214,6 +215,7 @@ class MqttClient(Communicator):  # type: ignore[misc]
             else:
                 self.client.tls_set(self.mqtt_config.tls_ca_certs)
         if self.mqtt_config.tls_insecure is not None:
+            self.client.tls_set()
             self.client.tls_insecure_set(self.mqtt_config.tls_insecure)
         if self.mqtt_config.user is not None:
             self.client.username_pw_set(
