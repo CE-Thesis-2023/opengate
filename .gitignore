@@ -5,7 +5,8 @@ debug
 .vscode/*
 !.vscode/launch.json
 config/*
-!config/*.example
+!config/*config.yaml
+!config/config.yaml
 models
 *.mp4
 *.ts

@@ -1,0 +1,71 @@
+audio:
+  enabled: false
+birdseye:
+  enabled: false
+ffmpeg:
+  retry_interval: 10
+detect:
+  min_initialized: 5
+  max_disappeared: 25
+  stationary:
+    interval: 50
+    threshold: 50
+cameras:
+  ip_camera_03:
+    detect:
+      fps: 5
+      height: 480
+      width: 640
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:ACLAB2023@172.28.182.165:80/ISAPI/Streaming/channels/101
+          roles:
+            - detect
+      hwaccel_args: default
+      input_args: preset-rtsp-generic
+    zones:
+      all:
+        coordinates: 640,480,640,0,0,0,0,480
+        objects:
+          - person
+    mqtt:
+      bounding_box: true
+      crop: true
+      enabled: true
+      timestamp: true
+      required_zones:
+        - all
+    onvif:
+      autotracking:
+        enabled: true
+        zooming: disabled
+        track:
+          - person
+        required_zones:
+          - all
+      host: 172.28.182.165
+      port: 80
+      username: admin
+      password: ACLAB2023
+      isapi_fallback: true
+      isapi_sidecar:
+        host: localhost
+        port: 5600
+logger:
+  default: info
+mqtt:
+  enabled: true
+  host: mosquitto.mqtt.ntranlab.com
+  password: ctportal2024
+  port: 8883
+  topic_prefix: opengate/test-device-01
+  user: admin
+snapshots:
+  enabled: true
+  timestamp: true
+  quality: 80
+  retain:
+    default: 7
+detectors:
+  default:
+    type: cpu
