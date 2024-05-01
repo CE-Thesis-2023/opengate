@@ -876,7 +876,6 @@ class CameraConfig(OpenGateBaseModel):
                 self.detect.width,
                 self.detect.height,
             )
-
             ffmpeg_output_args = scale_detect_args + ffmpeg_output_args + ["pipe:"]
         if "rtmp" in ffmpeg_input.roles and self.rtmp.enabled:
             rtmp_args = get_ffmpeg_arg_list(
@@ -928,6 +927,7 @@ class CameraConfig(OpenGateBaseModel):
             or parse_preset_input(self.ffmpeg.input_args, self.detect.fps)
             or self.ffmpeg.input_args
         )
+        print(f"hwaccel_args: {hwaccel_args}")
 
         cmd = (
             ["ffmpeg"]
@@ -937,6 +937,7 @@ class CameraConfig(OpenGateBaseModel):
             + ["-i", escape_special_characters(ffmpeg_input.path)]
             + ffmpeg_output_args
         )
+        print(f"cmd: {global_args}")
 
         cmd = [part for part in cmd if part != ""]
         cmd_str = " ".join(cmd)

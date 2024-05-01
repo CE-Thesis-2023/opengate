@@ -4,12 +4,8 @@ birdseye:
   enabled: false
 ffmpeg:
   retry_interval: 10
-detect:
-  min_initialized: 5
-  max_disappeared: 25
-  stationary:
-    interval: 50
-    threshold: 50
+  hwaccel_args:
+    - default
 cameras:
   ip_camera_03:
     detect:
@@ -18,11 +14,10 @@ cameras:
       width: 640
     ffmpeg:
       inputs:
-        - path: rtsp://admin:ACLAB2023@172.28.182.165:80/ISAPI/Streaming/channels/101
+        - path: /media/opengate/thief.mp4
           roles:
             - detect
-      hwaccel_args: default
-      input_args: preset-rtsp-generic
+      input_args: -re -stream_loop -1 -fflags +genpts
     zones:
       all:
         coordinates: 640,480,640,0,0,0,0,480
@@ -37,7 +32,7 @@ cameras:
         - all
     onvif:
       autotracking:
-        enabled: true
+        enabled: false
         zooming: disabled
         track:
           - person
@@ -62,10 +57,8 @@ mqtt:
   user: admin
 snapshots:
   enabled: true
-  timestamp: true
-  quality: 80
   retain:
-    default: 7
+    default: 30
 detectors:
   default:
     type: cpu
